@@ -21,7 +21,7 @@ public class Product {
     private String productName;
     private String description;
     private double price;
-    private Date createDate;
+
     @ManyToOne
     private Category category;
 }

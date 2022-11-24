@@ -5,17 +5,19 @@ import com.codegym.model.Product;
 import com.codegym.service.category.ICategoryService;
 import com.codegym.service.product.IProductService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
+import java.util.List;
 import java.util.Optional;
 
 
-@Controller
+@RestController
+@CrossOrigin("*")
+@RequestMapping("products")
 public class ProductController {
     @Autowired
     private IProductService productService;
@@ -28,63 +30,42 @@ public class ProductController {
         return categoryService.findAll();
     }
 
-    @GetMapping("/create")
-    public ModelAndView showCreateForm() {
-        ModelAndView modelAndView = new ModelAndView("/product/create");
-        modelAndView.addObject("product", new Product());
-        return modelAndView;
-    }
-
     @PostMapping("/create")
-    public ModelAndView saveProduct(@ModelAttribute("product") Product product) {
-        productService.save(product);
-        ModelAndView modelAndView = new ModelAndView("/product/create");
-        modelAndView.addObject("product", new Product());
-        modelAndView.addObject("message", "New customer created successfully");
-        return modelAndView;
+    public ResponseEntity<Product> createProduct(@RequestBody Product product) {
+        return new ResponseEntity<>(productService.save(product), HttpStatus.CREATED);
     }
-    @GetMapping("/products")
-    public ModelAndView listProducts() {
-        ModelAndView modelAndView = new ModelAndView("/product/list");
-        modelAndView.addObject("products", productService.findAll());
-        return modelAndView;
+    @GetMapping("/list")
+    public ResponseEntity<List<Product>> showAllProduct() {
+        List<Product> products = (List<Product>) productService.findAll();
+        return new ResponseEntity<>(products, HttpStatus.OK);
     }
-    @GetMapping("/edit/{id}")
-    public ModelAndView showEditForm(@PathVariable Long id) {
-        Optional<Product> product = productService.findById(id);
-        if (product.isPresent()) {
-            ModelAndView modelAndView = new ModelAndView("/product/edit");
-            modelAndView.addObject("product", product.get());
-            return modelAndView;
-        } else {
-            return new ModelAndView("/error.404");
+    @GetMapping("/find/{id}")
+    public ResponseEntity<Product> findProductById(@PathVariable Long id) {
+        Optional<Product> productOptional = productService.findById(id);
+        if (!productOptional.isPresent()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
+        return new ResponseEntity<>(productOptional.get(), HttpStatus.OK);
     }
 
-    @PostMapping("/edit")
-    public ModelAndView updateProduct(@ModelAttribute("product") Product product) {
-        productService.save(product);
-        ModelAndView modelAndView = new ModelAndView("/product/edit");
-        modelAndView.addObject("product", product);
-        modelAndView.addObject("message", "Customer updated successfully");
-        return modelAndView;
-    }
-    @GetMapping("/delete/{id}")
-    public ModelAndView showDeleteForm(@PathVariable Long id) {
-        Optional<Product> product = productService.findById(id);
-        if (product.isPresent()) {
-            ModelAndView modelAndView = new ModelAndView("/product/delete");
-            modelAndView.addObject("product", product.get());
-            return modelAndView;
-
-        } else {
-            return new ModelAndView("/error.404");
+    @PutMapping("/update/{id}")
+    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product product) {
+        Optional<Product> productOptional = productService.findById(id);
+        if (!productOptional.isPresent()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
+        product.setId(productOptional.get().getId());
+        return new ResponseEntity<>(productService.save(product), HttpStatus.OK);
     }
 
-    @PostMapping("/delete")
-    public String deleteProduct(@ModelAttribute("product") Product product) {
-        productService.delete(product.getId());
-        return "redirect:products";
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<Product> deleteProduct(@PathVariable Long id) {
+        Optional<Product> productOptional = productService.findById(id);
+        if (!productOptional.isPresent()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        productService.delete(id);
+        return new ResponseEntity<>(productOptional.get(), HttpStatus.NO_CONTENT);
     }
+
 }
